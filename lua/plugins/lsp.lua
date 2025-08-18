@@ -1,4 +1,5 @@
 return {
+	-- Mason: external tool + LSP server installer
 	{
 		"williamboman/mason.nvim",
 		config = function()
@@ -15,88 +16,98 @@ return {
 		end,
 	},
 
+	-- Mason + LSPConfig bridge
 	{
 		"williamboman/mason-lspconfig.nvim",
+		dependencies = { "neovim/nvim-lspconfig" },
 		config = function()
-			require("mason-lspconfig").setup()
-			require("mason-lspconfig").setup_handlers({
-				-- The first entry (without a key) will be the default handler
-				-- and will be called for each installed server that doesn't have
-				-- a dedicated handler.
-				function(server_name) -- default handler (optional)
-					require("lspconfig")[server_name].setup({})
+			local mason_lspconfig = require("mason-lspconfig")
+
+			mason_lspconfig.setup({
+				ensure_installed = { "lua_ls", "pyright", "ts_ls" }, -- add your servers
+				automatic_installation = true,
+			})
+
+			local lspconfig = require("lspconfig")
+			local capabilities = vim.lsp.protocol.make_client_capabilities()
+
+			-- optional: improve completion with nvim-cmp
+			-- local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+			local on_attach = function(client, bufnr)
+				-- example keymaps
+				local opts = { noremap = true, silent = true, buffer = bufnr }
+				vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+				vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+			end
+
+			for _, server in ipairs(mason_lspconfig.get_installed_servers()) do
+				lspconfig[server].setup({
+					on_attach = on_attach,
+					capabilities = capabilities,
+				})
+			end
+		end,
+	},
+
+	-- Core LSPConfig (extra configs go here)
+	{
+		"neovim/nvim-lspconfig",
+		config = function()
+			-- If you have per-server config, load it here
+			-- require("plugins/lspconfig/config")()
+		end,
+	},
+
+	-- null-ls (formatters, linters, code actions)
+	{
+		"nvimtools/none-ls.nvim", -- 👈 new official fork of null-ls
+		dependencies = { "nvim-lua/plenary.nvim" },
+		config = function()
+			local null_ls = require("null-ls")
+
+			local formatting = null_ls.builtins.formatting
+			local diagnostics = null_ls.builtins.diagnostics
+			local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
+
+			null_ls.setup({
+				sources = {
+					formatting.stylua,
+					formatting.prettier,
+					formatting.shfmt,
+					diagnostics.eslint_d,
+				},
+				on_attach = function(client, bufnr)
+					if client.supports_method("textDocument/formatting") then
+						vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
+						vim.api.nvim_create_autocmd("BufWritePre", {
+							group = vim.api.nvim_create_augroup("LspFormatting", {}),
+							buffer = bufnr,
+							callback = function()
+								vim.lsp.buf.format({ bufnr = bufnr })
+							end,
+						})
+					end
 				end,
-				-- Next, you can provide a dedicated handler for specific servers.
-				-- For example, a handler override for the `rust_analyzer`:
-				-- ["rust_analyzer"] = function ()
-				--     require("rust-tools").setup {}
-				-- end
 			})
 		end,
 	},
 
-	{
-		"neovim/nvim-lspconfig",
-		config = function()
-			require("plugins/lspconfig/config")()
-		end,
-	},
-
-	{
-		"jose-elias-alvarez/null-ls.nvim",
-		dependencies = { "nvim-lua/plenary.nvim" },
-		config = function()
-			local null_ls = require("null-ls")
-			local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
-
-			null_ls.setup({
-				border = "rounded",
-				cmd = { "nvim" },
-				debounce = 250,
-				debug = false,
-				default_timeout = 5000,
-				diagnostic_config = {},
-				diagnostics_format = "#{m}",
-				fallback_severity = vim.diagnostic.severity.ERROR,
-				log_level = "warn",
-				notify_format = "[null-ls] %s",
-				on_init = nil,
-				on_exit = nil,
-				root_dir = require("null-ls.utils").root_pattern(".null-ls-root", "Makefile", ".git"),
-				should_attach = nil,
-				sources = nil,
-				temp_dir = nil,
-				update_in_insert = false,
-				-- formatting on save
-				--on_attach = function(client, bufnr)
-				--	if client.supports_method("textDocument/formatting") then
-				--		vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
-				--		vim.api.nvim_create_autocmd("BufWritePre", {
-				--			group = augroup,
-				--			buffer = bufnr,
-				--			callback = function()
-				--				vim.lsp.buf.format({ bufnr = bufnr })
-				--			end,
-				--		})
-				--	end
-				--end,
-			}) -- end of setup
-		end,
-	},
-
+	-- Mason + null-ls bridge
 	{
 		"jay-babu/mason-null-ls.nvim",
 		event = { "BufReadPre", "BufNewFile" },
 		dependencies = {
 			"williamboman/mason.nvim",
-			"jose-elias-alvarez/null-ls.nvim",
+			"nvimtools/none-ls.nvim", -- 👈 updated dependency
 		},
 		config = function()
 			require("mason-null-ls").setup({
-				automatic_setup = true,
-				ensure_installed = { "shfmt", "prettier", "stylua" },
+				ensure_installed = { "stylua", "prettier", "shfmt" },
+				automatic_installation = true,
 				handlers = {},
 			})
 		end,
 	},
 }
+

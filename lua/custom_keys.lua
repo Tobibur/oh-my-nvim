@@ -17,7 +17,7 @@ return {
 
 	-- View other usage of the plugin: https://github.com/nvim-neo-tree/neo-tree.nvim
 	-- Use the shortcut to open or close file explorer.
-	file_explorer = "<F9>",
+	file_explorer = "<C-n>",
 	-- Use the shortcut to open or close git status on a float window.
 	git_status = "<F8>",
 
@@ -36,8 +36,8 @@ return {
 
 	-- View other usage of the plugin: https://github.com/nvim-telescope/telescope.nvim
 	-- Use the shortcut to find, search files and find buffers.
-	find_files = "<leader>ff",
-	live_grep = "<leader>gg",
+	find_files = "<C-p>",
+	live_grep = "<C-f>",
 	search_cursor = "<leader>cc",
 	find_buffer = "<leader>bb",
 	-- Use the to close telescope window. <C-c> is the default setting, can't edit it here.

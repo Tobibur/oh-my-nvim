@@ -62,7 +62,7 @@ return {
 	-- null-ls (formatters, linters, code actions)
 	{
 		"nvimtools/none-ls.nvim", -- 👈 new official fork of null-ls
-		dependencies = { "nvim-lua/plenary.nvim" },
+		dependencies = { "nvim-lua/plenary.nvim", "nvimtools/none-ls-extras.nvim" },
 		config = function()
 			local null_ls = require("null-ls")
 
@@ -75,7 +75,7 @@ return {
 					formatting.stylua,
 					formatting.prettier,
 					formatting.shfmt,
-					diagnostics.eslint_d,
+					require("none-ls.diagnostics.eslint_d"),
 				},
 				on_attach = function(client, bufnr)
 					if client.supports_method("textDocument/formatting") then
@@ -110,4 +110,3 @@ return {
 		end,
 	},
 }
-

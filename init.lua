@@ -14,9 +14,12 @@ if not vim.loop.fs_stat(lazypath) then
 	})
 end
 vim.opt.rtp:prepend(lazypath)
+vim.opt.clipboard = "unnamedplus"
 
 vim.g.mapleader = require("custom_keys").leader
 vim.g.maplocalleader = "\\"
+vim.o.number = true
+vim.o.relativenumber = true
 
 require("lazy").setup({
 	spec = {
